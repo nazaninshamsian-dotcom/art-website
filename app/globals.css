@@ -1,0 +1,32 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body {
+    @apply bg-wall text-ink font-body antialiased;
+  }
+
+  ::selection {
+    @apply bg-moss/20;
+  }
+
+  :focus-visible {
+    outline: 2px solid theme('colors.moss');
+    outline-offset: 3px;
+  }
+}
+
+@layer components {
+  .placard {
+    @apply font-mono text-[11px] uppercase tracking-widest2 text-ink-soft;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+  }
+}
