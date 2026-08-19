@@ -29,7 +29,7 @@ export default async function PaintingPage({ params }: { params: { id: string } 
             <p className="mt-6 whitespace-pre-line text-ink-soft">{painting.description}</p>
           </div>
           <div className="mt-8">
-            <BuyButton paintingId={painting.id} status={painting.status} />
+           <BuyButton title={painting.title} priceCents={painting.priceCents} status={painting.status} />
           </div>
         </div>
       </div>
