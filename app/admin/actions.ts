@@ -2,7 +2,6 @@
 
 import { cookies } from 'next/headers';
 import { revalidatePath } from 'next/cache';
-import { put } from '@vercel/blob';
 import { prisma } from '@/lib/prisma';
 import { checkPassword, tokenForCookie, ADMIN_COOKIE_NAME } from '@/lib/adminAuth';
 
@@ -32,15 +31,11 @@ export async function addPaintingAction(formData: FormData) {
   const dimensions = String(formData.get('dimensions') || '');
   const year = Number(formData.get('year') || new Date().getFullYear());
   const priceDollars = Number(formData.get('price') || 0);
-  const imageFile = formData.get('image') as File | null;
+  const imageUrl = String(formData.get('imageUrl') || '');
 
-  if (!title || !imageFile || imageFile.size === 0 || !priceDollars) {
+  if (!title || !imageUrl || !priceDollars) {
     return { error: 'Title, price, and an image are required.' };
   }
-
-  const blob = await put(`paintings/${Date.now()}-${imageFile.name}`, imageFile, {
-    access: 'public',
-  });
 
   await prisma.painting.create({
     data: {
@@ -50,7 +45,7 @@ export async function addPaintingAction(formData: FormData) {
       dimensions: dimensions || '',
       year,
       priceCents: Math.round(priceDollars * 100),
-      imageUrl: blob.url,
+      imageUrl,
       status: 'available',
     },
   });

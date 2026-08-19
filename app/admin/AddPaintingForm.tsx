@@ -1,6 +1,7 @@
 'use client';
 
-import { useRef, useState, useTransition } from 'react';
+import { useRef, useState } from 'react';
+import { upload } from '@vercel/blob/client';
 import { addPaintingAction } from './actions';
 
 const inputClass =
@@ -8,25 +9,46 @@ const inputClass =
 
 export default function AddPaintingForm() {
   const [error, setError] = useState<string | null>(null);
-  const [pending, startTransition] = useTransition();
+  const [status, setStatus] = useState<'idle' | 'uploading' | 'saving'>('idle');
   const formRef = useRef<HTMLFormElement>(null);
 
+  async function handleSubmit(formData: FormData) {
+    setError(null);
+
+    const file = formData.get('image') as File | null;
+    if (!file || file.size === 0) {
+      setError('Please choose a photo of the painting.');
+      return;
+    }
+
+    try {
+      setStatus('uploading');
+      const blob = await upload(file.name, file, {
+        access: 'public',
+        handleUploadUrl: '/api/upload',
+      });
+
+      formData.set('imageUrl', blob.url);
+      formData.delete('image');
+
+      setStatus('saving');
+      const result = await addPaintingAction(formData);
+      if (result?.error) {
+        setError(result.error);
+      } else {
+        formRef.current?.reset();
+      }
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Something went wrong. Please try again.');
+    } finally {
+      setStatus('idle');
+    }
+  }
+
+  const busy = status !== 'idle';
+
   return (
-    <form
-      ref={formRef}
-      action={(formData) => {
-        startTransition(async () => {
-          const result = await addPaintingAction(formData);
-          if (result?.error) {
-            setError(result.error);
-          } else {
-            setError(null);
-            formRef.current?.reset();
-          }
-        });
-      }}
-      className="grid gap-3 sm:grid-cols-2"
-    >
+    <form ref={formRef} action={handleSubmit} className="grid gap-3 sm:grid-cols-2">
       <input name="title" placeholder="Title" required className={inputClass} />
       <input name="price" type="number" step="1" min="1" placeholder="Price (USD)" required className={inputClass} />
       <input name="medium" placeholder="Medium (e.g. Oil on canvas)" className={inputClass} />
@@ -42,10 +64,10 @@ export default function AddPaintingForm() {
       {error && <p className="sm:col-span-2 text-sm text-brass">{error}</p>}
       <button
         type="submit"
-        disabled={pending}
+        disabled={busy}
         className="sm:col-span-2 bg-ink px-6 py-3 placard text-wall hover:opacity-90 disabled:opacity-60"
       >
-        {pending ? 'Uploading…' : 'Add to collection'}
+        {status === 'uploading' ? 'Uploading photo…' : status === 'saving' ? 'Saving…' : 'Add to collection'}
       </button>
     </form>
   );
